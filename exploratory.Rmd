@@ -1,0 +1,66 @@
+---
+title: "Exploring Salamander Data"
+author: "Will Townes"
+date: "October 11, 2016"
+output: pdf_document
+---
+
+```{r setup}
+#knitr::opts_chunk$set(echo = TRUE)
+library(modules)
+import_package("ggplot2",attach=TRUE)
+reshape2<-import_package("reshape2")
+#save_plots<-TRUE
+#ggs<-function(x,plt_path="results/plots"){if(save_plots) ggsave(file.path(plt_path,x))}
+```
+
+## Scientific Question
+
+Which species of salamander is more tolerant of warm temperatures? The redbacked salamander is the low elevation common species, while the big levels (or peaks of otter) species is rare and endemic to higher elevations.
+
+Response variables
+
+* ponh- peaks of otter no hatchling counts
+* rbnh- red backed no hatchling counts
+
+Covariates
+
+* Date- each row in original data is a single date. No duplicates.
+* plot- binary hi/lo (elevation)
+* soilWC- soil moisture. Has missing values
+* temp- temperature. Expect maximum activity at intermediate temperature ranges
+
+Dr. Marsh tried negative binomial regression, including date as random intercept.
+
+```{r}
+#read in data and convert to ggplot friendly format
+d<-read.csv("data/PORBsummary.csv")
+d$poscaled<-d$pototal<-d$rbtotal<-d$rbscaled<-d$temp2<-NULL
+d2<-reshape2$melt(d,c("Date","plot","soilWC","temp"),c("ponh","rbnh"),"saltype",value.name="salcount")
+d$po_frac<-with(d,ponh/(ponh+rbnh)) #fraction of peaks of otter salamanders
+```
+
+looking for patterns
+
+```{r}
+#plt_path<-"results/plots/exploratory"
+ggplot(d2)+geom_boxplot(aes(plot,salcount,fill=saltype))+ggtitle("Red Backed dominant at both elevations?")
+```
+
+Red backed salamanders (RB) are more abundant at both high and elevation plots compared to the endemic peaks of otter salamanders (PO). Notably the distributions do not differ much between the two elevation plots.
+
+```{r}
+ggplot(d,aes(x=temp,y=ponh+rbnh))+geom_point()+geom_smooth()+ggtitle("total salcount vs temperature")
+ggplot(d2,aes(x=temp,y=salcount,colour=saltype))+geom_point()+geom_smooth()+ggtitle("salcount by species versus temperature")
+```
+
+We see the maximum overall abundance seems to occur at approximately 13C. The maximum for RB is closer to 12.5C and the maximum for PO is closer to 13.5C.
+
+What happens if we use *fraction* of peaks of otter salamanders instead of counts?
+
+```{r}
+#any pattern using proportion instead of count?
+ggplot(d,aes(x=temp,y=po_frac))+geom_point()+geom_smooth()
+```
+
+The PO salamanders are most abundant relative to RB at a temperature of about 16C. This is much higher than the peak of absolute abundance.
