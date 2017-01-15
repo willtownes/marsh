@@ -131,7 +131,8 @@ knitr::kable(beta)
 #beta is matrix with rows=parameters and cols=mean and conf. interval.
 sigma<-res["sigma",]
 rand_ints<-res[startsWith(rownames(res),"rand_ints"),]
-logphi<-res[startsWith(rownames(res),"logphi"),]
+hist(exp(rand_ints[,"mean"])) #visualize random intercept distribution
+phi<-res[startsWith(rownames(res),"phi"),]
 #visualize the implied curves
 temp_curve<-function(x,species=c("ponh","rbnh"),temp_offset=10,logscale=TRUE){
   #prediction for log-mean function
@@ -139,7 +140,7 @@ temp_curve<-function(x,species=c("ponh","rbnh"),temp_offset=10,logscale=TRUE){
   xt<-x-temp_offset
   b<-beta[,"mean"]
   names(b)<-rownames(beta)
-  lmu<-b["(Intercept)"]+b["temp"]*xt+b["temp2"]*xt^2
+  lmu<-b["(Intercept)"]+b["soilWC"]*median(d3$soilWC)+b["temp"]*xt+b["temp2"]*xt^2
   if(species=="rbnh"){
     lmu<-lmu+b["saltyperbnh"]+b["saltyperbnh:temp"]*xt+b["saltyperbnh:temp2"]*xt^2
   }
@@ -149,6 +150,6 @@ temp_curve<-function(x,species=c("ponh","rbnh"),temp_offset=10,logscale=TRUE){
 
 ggplot(d3,aes(x=temp+temp_offset,y=salcount,colour=saltype))+geom_point() + stat_function(fun=function(x){temp_curve(x,"ponh",logscale=FALSE)},colour="black") + stat_function(fun=function(x){temp_curve(x,"rbnh",logscale=FALSE)},colour="black")
 
-hist(exp(rand_ints[,"mean"]))
+knitr::kable(phi)
 ```
 

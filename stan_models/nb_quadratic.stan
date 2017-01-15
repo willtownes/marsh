@@ -11,7 +11,8 @@ parameters {
   vector[D] beta; #fixed effects
   real<lower=0> sigma; #stdev of random intercepts
   vector[K] rand_ints;
-  real logphi[2];
+  #real logphi[2];
+  real<lower=0> phi[2];
 }
 model {
   vector[N] eta;
@@ -19,8 +20,9 @@ model {
   #real<lower=0> phi[2];
   vector[N] phi_vec;
   for(d in 1:D) beta[d]~cauchy(0,5);
-  logphi ~ cauchy(0,1);
-  #phi=exp(logphi);
+  #logphi ~ cauchy(0,1);
+  #phi~lognormal(0,2);
+  phi~gamma(2,.1);
   # prior for random effect stdev
   sigma~cauchy(0,1);
   #prior for random effects
@@ -29,7 +31,7 @@ model {
   }
   for(n in 1:N){
     rand_ints_vec[n]=rand_ints[id[n]];
-    phi_vec[n]=exp(logphi[phi_group[n]]);
+    phi_vec[n]=phi[phi_group[n]];
   }
   eta=X*beta + rand_ints_vec;
   y ~ neg_binomial_2_log(eta, phi_vec);
