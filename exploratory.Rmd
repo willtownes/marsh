@@ -1,7 +1,7 @@
 ---
 title: "Exploring Salamander Data"
 author: "Will Townes"
-date: "October 11, 2016"
+date: "January 2017"
 output: pdf_document
 ---
 
@@ -126,8 +126,7 @@ system.time(stfit<-sampling(nb_quadratic,data=dat))
 res<-summary(stfit)$summary[,c("mean","2.5%","97.5%")]
 beta<-as.data.frame(res[startsWith(rownames(res),"beta"),])
 beta$signif<-beta[,"2.5%"]*beta[,"97.5%"]>0 #CI spans zero?
-rownames(beta)<-colnames(X)
-knitr::kable(beta)
+rownames(beta)<-colnames(dat$X)
 #beta is matrix with rows=parameters and cols=mean and conf. interval.
 sigma<-res["sigma",]
 rand_ints<-res[startsWith(rownames(res),"rand_ints"),]
@@ -148,8 +147,12 @@ temp_curve<-function(x,species=c("ponh","rbnh"),temp_offset=10,logscale=TRUE){
   lmu
 }
 
-ggplot(d3,aes(x=temp+temp_offset,y=salcount,colour=saltype))+geom_point() + stat_function(fun=function(x){temp_curve(x,"ponh",logscale=FALSE)},colour="black") + stat_function(fun=function(x){temp_curve(x,"rbnh",logscale=FALSE)},colour="black")
+ggplot(d3,aes(x=temp+temp_offset,y=salcount,colour=saltype))+geom_point() + stat_function(fun=function(x){temp_curve(x,"ponh",logscale=FALSE)},colour="black") + stat_function(fun=function(x){temp_curve(x,"rbnh",logscale=FALSE)},colour="black")+xlab("temperature(C)")+ylab("salamander abundance (count)")
 
+knitr::kable(beta)
 knitr::kable(phi)
 ```
 
+As shown above, the negative binomial model suggests there is a small but significant difference in the temperature profiles for the red backed and peaks of otter salamanders. In particular, the peaks of otter salamanders seem to prefer slightly higher temperatures than the red backs.
+
+TODO- include the reparameterized (easier to interpret) version in the Stan program and make boxplots showing distributions of the contrasts.

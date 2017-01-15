@@ -21,7 +21,7 @@ model {
   vector[N] phi_vec;
   for(d in 1:D) beta[d]~cauchy(0,5);
   #logphi ~ cauchy(0,1);
-  #phi~lognormal(0,2);
+  #phi~lognormal(0,1);
   phi~gamma(2,.1);
   # prior for random effect stdev
   sigma~cauchy(0,1);
