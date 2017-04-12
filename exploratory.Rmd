@@ -14,16 +14,16 @@ reshape2<-import_package("reshape2")
 #ggs<-function(x,plt_path="results/plots"){if(save_plots) ggsave(file.path(plt_path,x))}
 library(rstan)
 rstan_options(auto_write=TRUE)
-options(mc.cores=max(parallel::detectCores()-1,1))
 ```
 
 ## Scientific Question
 
-Which species of salamander is more tolerant of warm temperatures? The redbacked salamander is the low elevation common species, while the big levels (or peaks of otter) species is rare and endemic to higher elevations.
+Which species of salamander is more tolerant of warm temperatures? The redbacked salamander is the low elevation common species, while the big levels (or peaks of otter) species is rare and endemic to higher elevations. We have two datasets from two separate field sites. One of them compares Peaks of Otter vs Red Backed, the other compares Big Levels vs Red Backed.
 
 Response variables
 
 * ponh- peaks of otter no hatchling counts
+* blnh- big levels no hatchling counts
 * rbnh- red backed no hatchling counts
 
 Covariates
@@ -39,18 +39,30 @@ Dr. Marsh tried negative binomial regression, including date as random intercept
 
 ```{r}
 #read in data and convert to ggplot friendly format
-d<-read.csv("data/PORBsummary.csv")
-d$poscaled<-d$pototal<-d$rbtotal<-d$rbscaled<-d$temp2<-NULL
-d2<-reshape2$melt(d,c("Date","plot","soilWC","temp"),c("ponh","rbnh"),"saltype",value.name="salcount")
-d2$lsalcount<-log2(.5+d2$salcount)
-d$po_frac<-with(d,ponh/(ponh+rbnh)) #fraction of peaks of otter salamanders
+po<-read.csv("data/PORBsummary.csv")
+po$poscaled<-po$pototal<-po$rbtotal<-po$rbscaled<-po$temp2<-NULL
+po2<-reshape2$melt(po,c("Date","plot","soilWC","temp"),c("ponh","rbnh"),"saltype",value.name="salcount")
+po2$lsalcount<-log2(.5+po2$salcount)
+po$po_frac<-with(po,ponh/(ponh+rbnh)) #fraction of peaks of otter salamanders
+
+bl<-read.csv("data/BLRBvers2.csv")
+bl$Date<-as.factor(bl$Date)
+colnames(bl)[colnames(bl)=="species"]<-"saltype"
+colnames(bl)[colnames(bl)=="nh"]<-"salcount"
+colnames(bl)[colnames(bl)=="soilms"]<-"soilWC"
+bl$total<-bl$temp2<-NULL
+bl$soilWC<-bl$soilWC*100
+bl$saltype<-as.character(bl$saltype)
+bl$saltype[bl$saltype=="RB"]<-"rbnh"
+bl$saltype[bl$saltype=="BL"]<-"blnh"
+bl$saltype<-as.factor(bl$saltype)
 ```
 
 looking for patterns
 
 ```{r}
 #plt_path<-"results/plots/exploratory"
-ggplot(d2)+geom_boxplot(aes(plot,salcount,fill=saltype))+ggtitle("Red Backed dominant at both elevations?")
+ggplot(po2)+geom_boxplot(aes(plot,salcount,fill=saltype))+ggtitle("Red Backed dominant at both elevations?")
 ```
 
 Red backed salamanders (RB) are more abundant at both high and elevation plots compared to the endemic peaks of otter salamanders (PO). Notably the distributions do not differ much between the two elevation plots.
