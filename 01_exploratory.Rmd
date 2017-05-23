@@ -1,0 +1,90 @@
+---
+title: "Exploring Salamander Data"
+author: "Will Townes"
+date: "January 2017"
+output: pdf_document
+---
+
+```{r setup}
+#knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(reshape2)
+```
+
+## Scientific Question
+
+Which species of salamander is more tolerant of warm temperatures? The redbacked salamander is the low elevation common species, while the big levels (or peaks of otter) species is rare and endemic to higher elevations. We have two datasets from two separate field sites. One of them compares Peaks of Otter vs Red Backed, the other compares Big Levels vs Red Backed.
+
+Response variables
+
+* ponh- peaks of otter no hatchling counts
+* blnh- big levels no hatchling counts
+* rbnh- red backed no hatchling counts
+
+Covariates
+
+* Date- each row in original data is a single date. No duplicates.
+* plot- binary hi/lo (elevation)
+* soilWC- soil moisture. Has missing values
+* temp- temperature. Expect maximum activity at intermediate temperature ranges
+
+Dr. Marsh tried negative binomial regression, including date as random intercept.
+
+## Exploratory Data Analysis
+
+```{r}
+#read in data and convert to ggplot friendly format
+po<-read.csv("data/PORBsummary.csv")
+po$poscaled<-po$pototal<-po$rbtotal<-po$rbscaled<-po$temp2<-NULL
+po2<-melt(po,c("Date","plot","soilWC","temp"),c("ponh","rbnh"),"saltype",value.name="salcount")
+#po2$lsalcount<-log2(.5+po2$salcount)
+po$po_frac<-with(po,ponh/(ponh+rbnh)) #fraction of peaks of otter salamanders
+po2$site<-"PO"
+
+bl<-read.csv("data/BLRBvers2.csv")
+bl$Date<-as.factor(bl$Date)
+colnames(bl)[colnames(bl)=="species"]<-"saltype"
+colnames(bl)[colnames(bl)=="nh"]<-"salcount"
+colnames(bl)[colnames(bl)=="soilms"]<-"soilWC"
+bl$total<-bl$temp2<-NULL
+bl$soilWC<-bl$soilWC*100
+bl$saltype<-as.character(bl$saltype)
+bl$saltype[bl$saltype=="RB"]<-"rbnh"
+bl$saltype[bl$saltype=="BL"]<-"blnh"
+bl$saltype<-as.factor(bl$saltype)
+bl$site<-"BL"
+
+dat<-rbind(po2,bl)
+write.csv(dat,file="data/merged_data.csv",row.names=FALSE)
+```
+
+overall abundance of each species at different sites and elevations.
+
+```{r}
+#dat<-read.csv("data/merged_data.csv")
+#plt_path<-"results/plots/exploratory"
+ggplot(dat)+geom_boxplot(aes(plot,salcount,fill=saltype))+facet_wrap(~site,scales="free")+ylab("count of adult salamanders")+theme_bw()
+```
+
+In the peaks of otter site (PO), red backed salamanders (rbnh) are more abundant at both high and elevation plots compared to the endemic peaks of otter salamanders (ponh). Notably the rbnh distribution does not differ much between the two elevation plots.
+
+The reverse is true at the big levels site (BL). Here, the big levels species (blnh) seems to be more abundant than the competing red backed salamanders (rbnh).
+
+```{r}
+#salcount by temperature
+ggplot(dat,aes(x=temp,y=salcount,colour=saltype))+geom_point()+geom_smooth()+facet_grid(site~.,scales="free_y")+theme_bw()+ylab("count of adult salamanders")
+#log scale same plot
+ggplot(dat,aes(x=temp,y=log2(.5+salcount),colour=saltype))+geom_point()+geom_smooth()+facet_grid(site~.,scales="free_y")+theme_bw()
+```
+
+At the PO site, we see the maximum overall abundance seems to occur at approximately 13C. The maximum for RB is closer to 12.5C and the maximum for PO is closer to 13.5C. On the log scale, there appears to be a quadratic relationship.
+
+The relationship between temperature and abundance is less clear at the BL site, with lower overall abundance for both species.
+
+```{r}
+#soil moisture
+ggplot(dat,aes(x=soilWC,y=salcount,colour=saltype))+geom_point()+geom_smooth()+theme_bw()+facet_grid(site~.,scales="free_y")
+ggplot(dat,aes(x=soilWC,y=log2(.5+salcount),colour=saltype))+geom_point()+geom_smooth()+theme_bw()+facet_grid(site~.,scales="free_y")
+```
+
+On the log scale, abundance tends to increase linearly with soil moisture content. Interestingly, the overall abundance is lower in the big levels site (BL) compared to PO, even though the soil moisture is higher.

@@ -1,0 +1,71 @@
+---
+title: "Salamander Analysis- Stan Results"
+author: "Will Townes"
+date: "5/23/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Negative Binomial Model
+
+Dr. Marsh's model is `SALCOUNT (neg.bin) ~ SPECIES + temp + temp^2 + SPECIES*temp + SPECIES*temp^2 +soilMS + (~1|date)`. Consider the quadratic function on the log scale, with $\mu$ the mean abundance and $x$ representing temperature:
+
+$$\log\mu = ax^2+bx+c$$
+
+There are three parameters, $a,b,c$. Using some algebra, we can re-parameterize this relationship as
+
+$$\log\mu = -s\left(\frac{x-q}{w}\right)^2+s$$
+
+The parameters $q,r,s$ are more interpretable: $q=-b/(2a)$ is the temperature at which abundance reaches its peak. The maximum abundance is given by $e^s$ where $s=c-b^2/(4a)$ and the range of temperatures where abundance is expected to be more than one has width $2r$ where $r=\sqrt{b^2-4ac}/(2|a|)$. Based on this transformation, we can compare the abundance curves for different species by looking at contrasts in these parameters. For example, we can ask
+
+* Do the two species reach maximum abundance at different temperatures? (comparing $q$)
+* Does one species have a wider temperature range? (comparing $r$)
+* Is one species more abundant than the other (comparing $s$)
+
+To improve numerical stability while working with the quadratic temperature terms, we would prefer to work with the offset temperature $x-k$ where $k$ is some baseline temperature. Based on the above plots, we could set $k=10$ (ie temperature relative to 10 degrees celsius). Then the temperature at which abundance reaches its peak changes to $q+k$ instead of $q$. The other two parameters retain the same interpretation when calculated on the offset scale.
+
+```{r}
+stfit<-blfit
+stdat<-bl
+temp_offset<-10
+wc_median<-median(dat$soilWC[dat$site=="BL"],na.rm = TRUE)
+
+res<-summary(stfit)$summary[,c("mean","2.5%","97.5%")]
+beta<-as.data.frame(res[startsWith(rownames(res),"beta"),])
+beta$signif<-beta[,"2.5%"]*beta[,"97.5%"]>0 #CI spans zero?
+rownames(beta)<-colnames(stdat$X)
+#beta is matrix with rows=parameters and cols=mean and conf. interval.
+sigma<-res["sigma",]
+rand_ints<-res[startsWith(rownames(res),"rand_ints"),]
+hist(exp(rand_ints[,"mean"])) #visualize random intercept distribution
+phi<-res[startsWith(rownames(res),"phi"),]
+#visualize the implied curves
+temp_curve<-function(x,species=c("blnh","ponh","rbnh"),temp_offset=10,logscale=TRUE){
+  #prediction for log-mean function
+  species<-match.arg(species)
+  xt<-x-temp_offset
+  b<-beta[,"mean"]
+  names(b)<-rownames(beta)
+  lmu<-b["(Intercept)"]+b["soilWC"]*wc_median+b["temp"]*xt+b["temp2"]*xt^2
+  #if(species=="rbnh"){
+  #  lmu<-lmu+b["saltyperbnh"]+b["saltyperbnh:temp"]*xt+b["saltyperbnh:temp2"]*xt^2
+  #}
+  if(species=="blnh"){
+    lmu<-lmu+b["saltypeblnh"]+b["saltypeblnh:temp"]*xt+b["saltypeblnh:temp2"]*xt^2
+  }
+  if(!logscale) return(exp(lmu))
+  lmu
+}
+
+ggplot(dat[dat$site=="BL",],aes(x=temp,y=salcount,colour=saltype))+geom_point() + stat_function(fun=function(x){temp_curve(x,"blnh",logscale=FALSE)},colour="black") + stat_function(fun=function(x){temp_curve(x,"rbnh",logscale=FALSE)},colour="black")+xlab("temperature(C)")+ylab("salamander abundance (count)")
+
+knitr::kable(beta)
+knitr::kable(phi)
+```
+
+As shown above, the negative binomial model suggests there is a small but significant difference in the temperature profiles for the red backed and peaks of otter salamanders. In particular, the peaks of otter salamanders seem to prefer slightly higher temperatures than the red backs.
+
+TODO- include the reparameterized (easier to interpret) version in the Stan program and make boxplots showing distributions of the contrasts.
