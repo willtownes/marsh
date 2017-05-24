@@ -12,7 +12,7 @@ dat2stan<-function(d,site=c("BL","PO"),temp_offset=10){
   d2<-droplevels(d[complete.cases(d) & d$site==site,])
   d2$temp<-d2$temp-temp_offset
   d2$temp2<-d2$temp^2
-  dat<-list(id=as.integer(as.factor(d2$Date))) #cluster id
+  dat<-list(id=as.integer(as.factor(d2$Date)),temp_offset=temp_offset) #cluster id
   dat$K<-max(dat$id) #number of clusters
   dat$X<-model.matrix(~soilWC+saltype*(temp+temp2),d2) #fixed covariates
   dat$N<-nrow(dat$X); dat$D<-ncol(dat$X) #dimensionality
