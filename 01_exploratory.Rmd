@@ -9,6 +9,7 @@ output: pdf_document
 #knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(reshape2)
+library(brms)
 ```
 
 ## Scientific Question
@@ -88,3 +89,13 @@ ggplot(dat,aes(x=soilWC,y=log2(.5+salcount),colour=saltype))+geom_point()+geom_s
 ```
 
 On the log scale, abundance tends to increase linearly with soil moisture content. Interestingly, the overall abundance is lower in the big levels site (BL) compared to PO, even though the soil moisture is higher.
+
+# Regression Model with brms
+
+Didn't converge...
+
+```{r}
+rstan::rstan_options(autowrite=TRUE)
+options(mc.cores=4)
+res<-brm(salcount ~ site*(saltype*temp^2+soilWC)+ (1|Date), dat, family="negbinomial")
+```

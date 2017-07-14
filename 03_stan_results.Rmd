@@ -7,6 +7,10 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+load("data/bl_stanfit.rda") #blfit, bl
+load("data/po_stanfit.rda") #pofit, po
+dat<-read.csv("data/merged_data.csv")
 ```
 
 ## Negative Binomial Model
@@ -19,10 +23,10 @@ There are three parameters, $a,b,c$. Using some algebra, we can re-parameterize 
 
 $$\log\mu = -s\left(\frac{x-q}{w}\right)^2+s$$
 
-The parameters $q,r,s$ are more interpretable: $q=-b/(2a)$ is the temperature at which abundance reaches its peak. The maximum abundance is given by $e^s$ where $s=c-b^2/(4a)$ and the range of temperatures where abundance is expected to be more than one has width $2r$ where $r=\sqrt{b^2-4ac}/(2|a|)$. Based on this transformation, we can compare the abundance curves for different species by looking at contrasts in these parameters. For example, we can ask
+The parameters $q,r,s$ are more interpretable: $q=-b/(2a)$ is the temperature at which abundance reaches its peak. The maximum abundance is given by $e^s$ where $s=c-b^2/(4a)$ and the range of temperatures where abundance is expected to be more than some threshold $t$ has width $w=\sqrt{b^2-4a(c-t)}/|a|$. Based on this transformation, we can compare the abundance curves for different species by looking at contrasts in these parameters. For example, we can ask
 
 * Do the two species reach maximum abundance at different temperatures? (comparing $q$)
-* Does one species have a wider temperature range? (comparing $r$)
+* Does one species have a wider temperature range? (comparing $w$)
 * Is one species more abundant than the other (comparing $s$)
 
 To improve numerical stability while working with the quadratic temperature terms, we would prefer to work with the offset temperature $x-k$ where $k$ is some baseline temperature. Based on the above plots, we could set $k=10$ (ie temperature relative to 10 degrees celsius). Then the temperature at which abundance reaches its peak changes to $q+k$ instead of $q$. The other two parameters retain the same interpretation when calculated on the offset scale.
@@ -30,8 +34,18 @@ To improve numerical stability while working with the quadratic temperature term
 ```{r}
 stfit<-blfit
 stdat<-bl
-temp_offset<-10
-wc_median<-median(dat$soilWC[dat$site=="BL"],na.rm = TRUE)
+
+transform_temp_pars<-function(a,b,c,thresh=1){
+  q<- -b/(2*a)
+  w<- sqrt(b^2 - 4*a*(c-thresh))/abs(a)
+  s<- c - b^2/(4*a)
+  list(temp_max=q, max_log_abund=s, temp_range=w)
+}
+
+#extract sample draws for fixed effects
+res<-as.data.frame(stfit,pars=c("intercept","beta"))
+colnames(res)<-c("(intercept)",colnames(stdat$X))
+res<-cbind(res,as.data.frame(transform_temp_pars(res$temp2,res$temp,res$`(intercept)`+
 
 res<-summary(stfit)$summary[,c("mean","2.5%","97.5%")]
 beta<-as.data.frame(res[startsWith(rownames(res),"beta"),])
