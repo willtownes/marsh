@@ -23,7 +23,7 @@ There are three parameters, $a,b,c$. Using some algebra, we can re-parameterize 
 
 $$\log\mu = -s\left(\frac{x-q}{w}\right)^2+s$$
 
-The parameters $q,r,s$ are more interpretable: $q=-b/(2a)$ is the temperature at which abundance reaches its peak. The maximum abundance is given by $e^s$ where $s=c-b^2/(4a)$ and the range of temperatures where abundance is expected to be more than some threshold $t$ has width $w=\sqrt{b^2-4a(c-t)}/|a|$. Based on this transformation, we can compare the abundance curves for different species by looking at contrasts in these parameters. For example, we can ask
+The parameters $q,r,s$ are more interpretable: $q=-b/(2a)$ is the temperature at which abundance reaches its peak. The maximum abundance is given by $e^s$ where $s=c-b^2/(4a)$ and the range of temperatures where log-abundance is expected to be more than some threshold $t$ has width $w=\sqrt{b^2-4a(c-t)}/|a|$. Based on this transformation, we can compare the abundance curves for different species by looking at contrasts in these parameters. For example, we can ask
 
 * Do the two species reach maximum abundance at different temperatures? (comparing $q$)
 * Does one species have a wider temperature range? (comparing $w$)
