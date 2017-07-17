@@ -8,7 +8,7 @@ data {
   int<lower=1,upper=2> phi_group[N]; #indicator of salamander species
 }
 parameters {
-  real intercept;
+  #real intercept;
   vector[D] beta; #fixed effects
   real<lower=0> sigma; #stdev of random intercepts
   vector[K] rand_ints;
@@ -21,6 +21,7 @@ model {
   #real<lower=0> phi[2];
   vector[N] phi_vec;
   for(d in 2:D) beta[d]~cauchy(0,5); #omit beta[1] since it is assumed to be intercept
+  #beta ~ cauchy(0,5)
   #logphi ~ cauchy(0,1);
   #phi~lognormal(0,1);
   phi~gamma(2,.1);
@@ -34,6 +35,6 @@ model {
     rand_ints_vec[n]=rand_ints[id[n]];
     phi_vec[n]=phi[phi_group[n]];
   }
-  eta=intercept + X*beta + rand_ints_vec;
+  eta= X*beta + rand_ints_vec;
   y ~ neg_binomial_2_log(eta, phi_vec);
 }
