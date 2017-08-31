@@ -8,9 +8,14 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
+library(rstan)
 load("data/bl_stanfit.rda") #blfit, bl
 load("data/po_stanfit.rda") #pofit, po
 dat<-read.csv("data/merged_data.csv")
+
+#check for stan errors
+if(blfit@mode != 0) stop("bl_stanfit did not converge, try again!")
+if(pofit@mode != 0) stop("po_stanfit did not converge, try again!")
 ```
 
 ## Negative Binomial Model
@@ -31,6 +36,8 @@ The parameters $q,r,s$ are more interpretable: $q=-b/(2a)$ is the temperature at
 
 To improve numerical stability while working with the quadratic temperature terms, we would prefer to work with the offset temperature $x-k$ where $k$ is some baseline temperature. Based on the above plots, we could set $k=10$ (ie temperature relative to 10 degrees celsius). Then the temperature at which abundance reaches its peak changes to $q+k$ instead of $q$. The other two parameters retain the same interpretation when calculated on the offset scale.
 
+In a previous step, we already transformed temperature by subtracting it from the offset of 10 degrees Celsius for both the BL and PO datasets. We also transformed soil moisture by subtracting off the median at each site. So, if we set soil moisture to zero it is the same as interpreting the parameters at the median level for each site.
+
 ```{r}
 stfit<-blfit
 stdat<-bl
@@ -43,9 +50,13 @@ transform_temp_pars<-function(a,b,c,thresh=1){
 }
 
 #extract sample draws for fixed effects
-res<-as.data.frame(stfit,pars=c("intercept","beta"))
-colnames(res)<-c("(intercept)",colnames(stdat$X))
-res<-cbind(res,as.data.frame(transform_temp_pars(res$temp2,res$temp,res$`(intercept)`+
+res<-as.data.frame(stfit,pars="beta")
+pn<-colnames(res)<-colnames(stdat$X) #parameter names
+saltype_base<-as.data.frame(transform_temp_pars(res$temp2,res$temp,res$`(intercept)`))
+other_saltype_name<-pn[3]
+saltype_other<-as.data.frame(with(res,transform_temp_pars(
+
+res<-cbind(res,
 
 res<-summary(stfit)$summary[,c("mean","2.5%","97.5%")]
 beta<-as.data.frame(res[startsWith(rownames(res),"beta"),])
