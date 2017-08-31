@@ -1,7 +1,7 @@
 ---
 title: "Exploring Salamander Data"
 author: "Will Townes"
-date: "January 2017"
+date: "September 2017"
 output: pdf_document
 ---
 
@@ -9,7 +9,6 @@ output: pdf_document
 #knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(reshape2)
-library(brms)
 ```
 
 ## Scientific Question
@@ -73,9 +72,9 @@ The reverse is true at the big levels site (BL). Here, the big levels species (b
 
 ```{r}
 #salcount by temperature
-ggplot(dat,aes(x=temp,y=salcount,colour=saltype))+geom_point()+geom_smooth()+facet_grid(site~.,scales="free_y")+theme_bw()+ylab("count of adult salamanders")
+ggplot(dat,aes(x=temp,y=salcount,colour=saltype))+geom_point()+geom_smooth()+facet_wrap(~site,scales="free",nrow=1)+theme_bw()+ylab("count of adult salamanders")
 #log scale same plot
-ggplot(dat,aes(x=temp,y=log2(.5+salcount),colour=saltype))+geom_point()+geom_smooth()+facet_grid(site~.,scales="free_y")+theme_bw()
+ggplot(dat,aes(x=temp,y=log2(.5+salcount),colour=saltype))+geom_point()+geom_smooth()+facet_wrap(~site,scales="free",nrow=1)+theme_bw()
 ```
 
 At the PO site, we see the maximum overall abundance seems to occur at approximately 13C. The maximum for RB is closer to 12.5C and the maximum for PO is closer to 13.5C. On the log scale, there appears to be a quadratic relationship.
@@ -89,13 +88,3 @@ ggplot(dat,aes(x=soilWC,y=log2(.5+salcount),colour=saltype))+geom_point()+geom_s
 ```
 
 On the log scale, abundance tends to increase linearly with soil moisture content. Interestingly, the overall abundance is lower in the big levels site (BL) compared to PO, even though the soil moisture is higher.
-
-# Regression Model with brms
-
-Didn't converge...
-
-```{r}
-rstan::rstan_options(autowrite=TRUE)
-options(mc.cores=4)
-res<-brm(salcount ~ site*(saltype*temp^2+soilWC)+ (1|Date), dat, family="negbinomial")
-```
