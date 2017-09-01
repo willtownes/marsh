@@ -9,6 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(rstan)
+library(cowplot)
 load("data/bl_stanfit.rda") #blfit, bl
 load("data/po_stanfit.rda") #pofit, po
 dat<-read.csv("data/merged_data.csv")
@@ -19,6 +20,59 @@ if(pofit@mode != 0) stop("po_stanfit did not converge, try again!")
 ```
 
 ## Negative Binomial Model
+
+### Posterior Mean of Temperature Functions
+
+Big levels location
+
+```{r}
+tof<-10 #temperature offset (Celsius)
+bl_mn<-summary(blfit,pars="beta",probs=NULL)$summary[,"mean"]
+names(bl_mn)<-colnames(bl$X)
+bl_bl<-function(t){
+  res<-bl_mn["(Intercept)"]+(t-tof)*bl_mn["temp"]+(t-tof)^2*bl_mn["temp2"]
+  exp(res)
+}
+bl_rb<-function(t){
+  res<-bl_mn["(Intercept)"]+bl_mn["saltyperbnh"]+
+    (t-tof)*(bl_mn["temp"]+bl_mn["saltyperbnh:temp"])+
+    (t-tof)^2*(bl_mn["temp2"]+bl_mn["saltyperbnh:temp2"])
+  exp(res)
+}
+bl_col<-c(blnh="#009E73",rbnh="#D55E00")
+bl_plt<-ggplot(subset(dat,site=="BL"),aes(x=temp,colour=saltype))+ylab("count of adult salamanders")+scale_color_manual(values=bl_col)+xlim(c(0,25))+geom_point(aes(y=salcount))+stat_function(fun=bl_rb,colour=bl_col["rbnh"])+stat_function(fun=bl_bl,colour=bl_col["blnh"])
+show(bl_plt)
+show(bl_plt+coord_trans(y="log1p"))
+```
+
+peaks of otter location
+
+```{r}
+po_mn<-summary(pofit,pars="beta",probs=NULL)$summary[,"mean"]
+names(po_mn)<-colnames(po$X)
+po_po<-function(t){
+  res<-po_mn["(Intercept)"]+(t-tof)*po_mn["temp"]+(t-tof)^2*po_mn["temp2"]
+  exp(res)
+}
+po_rb<-function(t){
+  res<-po_mn["(Intercept)"]+po_mn["saltyperbnh"]+
+    (t-tof)*(po_mn["temp"]+po_mn["saltyperbnh:temp"])+
+    (t-tof)^2*(po_mn["temp2"]+po_mn["saltyperbnh:temp2"])
+  exp(res)
+}
+po_col<-c(ponh="#0072B2",rbnh="#D55E00")
+po_plt<-ggplot(subset(dat,site=="PO"),aes(x=temp,colour=saltype))+ylab("count of adult salamanders")+scale_color_manual(values=po_col)+xlim(c(0,25))+geom_point(aes(y=salcount))+stat_function(fun=po_rb,colour=po_col["rbnh"])+stat_function(fun=po_po,colour=po_col["ponh"])
+show(po_plt)
+show(po_plt+coord_trans(y="log1p"))
+```
+
+Combining the two locations into a single plot
+
+```{r}
+plot_grid(bl_plt+coord_trans(y="log1p"),po_plt+coord_trans(y="log1p"),nrow=2)
+```
+
+### Alternative Parameterization
 
 Dr. Marsh's model is `SALCOUNT (neg.bin) ~ SPECIES + temp + temp^2 + SPECIES*temp + SPECIES*temp^2 +soilMS + (~1|date)`. Consider the quadratic function on the log scale, with $\mu$ the mean abundance and $x$ representing temperature:
 
@@ -52,14 +106,20 @@ transform_temp_pars<-function(a,b,c){
 #extract sample draws for fixed effects
 res<-as.data.frame(stfit,pars="beta")
 pn<-colnames(res)<-colnames(stdat$X) #parameter names
+
 saltype_base<-as.data.frame(transform_temp_pars(res$temp2,res$temp,res$`(Intercept)`))
 #had warnings about NAN in temp_range due to sqrt of negative number
 apply(saltype_base,2,function(x){sum(is.na(x))})
+hist(res$temp2) #too close to zero!
+```
 
+old code, keeping for reference
+
+```{r, eval=FALSE}
 other_saltype_name<-pn[3]
-saltype_other<-as.data.frame(with(res,transform_temp_pars(
+#saltype_other<-as.data.frame(with(res,transform_temp_pars(
 
-res<-cbind(res,
+#res<-cbind(res,
 
 res<-summary(stfit)$summary[,c("mean","2.5%","97.5%")]
 beta<-as.data.frame(res[startsWith(rownames(res),"beta"),])
