@@ -42,9 +42,9 @@ In a previous step, we already transformed temperature by subtracting it from th
 stfit<-blfit
 stdat<-bl
 
-transform_temp_pars<-function(a,b,c,thresh=1){
+transform_temp_pars<-function(a,b,c){
   q<- -b/(2*a)
-  w<- sqrt(b^2 - 4*a*(c-thresh))/abs(a)
+  w<- sqrt(b^2 - 4*a*c)/abs(a)
   s<- c - b^2/(4*a)
   list(temp_max=q, max_log_abund=s, temp_range=w)
 }
@@ -52,7 +52,10 @@ transform_temp_pars<-function(a,b,c,thresh=1){
 #extract sample draws for fixed effects
 res<-as.data.frame(stfit,pars="beta")
 pn<-colnames(res)<-colnames(stdat$X) #parameter names
-saltype_base<-as.data.frame(transform_temp_pars(res$temp2,res$temp,res$`(intercept)`))
+saltype_base<-as.data.frame(transform_temp_pars(res$temp2,res$temp,res$`(Intercept)`))
+#had warnings about NAN in temp_range due to sqrt of negative number
+apply(saltype_base,2,function(x){sum(is.na(x))})
+
 other_saltype_name<-pn[3]
 saltype_other<-as.data.frame(with(res,transform_temp_pars(
 
