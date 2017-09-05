@@ -14,6 +14,7 @@ dat2stan<-function(d,site=c("BL","PO"),temp_offset=10){
   d2$temp2<-d2$temp^2
   soilWCmedian<-median(d2$soilWC,na.rm = TRUE)
   d2$soilWC<-d2$soilWC - soilWCmedian
+  d2$saltype<-plyr::revalue(d2$saltype, c("ponh"="endm"))
   dat<-list(id=as.integer(as.factor(d2$Date)),temp_offset=temp_offset,soilWCmedian=soilWCmedian)
   dat$K<-max(dat$id) #number of clusters
   dat$X<-model.matrix(~soilWC+saltype*(temp+temp2),d2) #fixed covariates
