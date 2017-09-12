@@ -27,7 +27,8 @@ Big levels location
 
 ```{r}
 tof<-10 #temperature offset (Celsius)
-bl_mn<-summary(blfit,pars="beta",probs=NULL)$summary[,"mean"]
+#s<-summary(blfit,pars=c("a","b","c","d"))$summary
+bl_mn<-summary(blfit,pars=c("a","b","c","d"),probs=NULL)$summary[,"mean"]
 names(bl_mn)<-colnames(bl$X)
 bl_bl<-function(t){
   res<-bl_mn["(Intercept)"]+(t-tof)*bl_mn["temp"]+(t-tof)^2*bl_mn["temp2"]

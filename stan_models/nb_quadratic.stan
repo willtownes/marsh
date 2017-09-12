@@ -13,12 +13,12 @@ data {
   vector[N2] temp_r;
   vector[N2] temp2_r;
   //_e means endemic (group1) and _r means red-backed (group2)
-  //covariates: intercept,soilWC,temp,temp2. Coefficients: c,w,b,a
+  //covariates: intercept,soilWC,temp,temp2. Coefficients: c,d,b,a
 }
 parameters {
   //real intercept;
   vector[2] c; //intercepts
-  real w; //coefficient for soilWC
+  real d; //coefficient for soilWC
   vector[2] b; //coefficients for temp
   real<lower=0> neg_a[2]; //negative of coefficients for temp2
   real<lower=0> sigma; //stdev of random intercepts
@@ -39,7 +39,7 @@ model {
   vector[N2] rand_ints_vec2;
   //no prior for intercepts
   //weak priors for linear terms
-  w ~ cauchy(0,2);
+  d ~ cauchy(0,2);
   b ~ cauchy(0,2);
   neg_a ~ gamma(2,1); //force negative concavity of quadratic term
   //beta ~ cauchy(0,5);
@@ -58,8 +58,8 @@ model {
   for(n in 1:N2){
     rand_ints_vec2[n]=rand_ints[id2[n]];
   }
-  eta1= a[1]*temp2_e + b[1]*temp_e + c[1] + w*soilWC_e + rand_ints_vec1; 
-  eta2= a[2]*temp2_r + b[2]*temp_r + c[2] + w*soilWC_r + rand_ints_vec2;
+  eta1= a[1]*temp2_e + b[1]*temp_e + c[1] + d*soilWC_e + rand_ints_vec1; 
+  eta2= a[2]*temp2_r + b[2]*temp_r + c[2] + d*soilWC_r + rand_ints_vec2;
   y1 ~ neg_binomial_2_log(eta1, phi[1]);
   y2 ~ neg_binomial_2_log(eta2, phi[2]);
 }

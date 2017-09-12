@@ -58,7 +58,7 @@ po<-dat2stan(dat,"PO")
 nb_quadratic<-stan_model(file="stan_models/nb_quadratic.stan")
 
 #run model
-system.time(blfit<-sampling(nb_quadratic,data=bl,control=list(max_treedepth=15,adapt_delta=1.0)))
+system.time(blfit<-sampling(nb_quadratic,data=bl,control=list(max_treedepth=15,adapt_delta=0.9)))
 save(bl,blfit,file="data/bl_stanfit.rda")
-system.time(pofit<-sampling(nb_quadratic,data=po,control=list(max_treedepth=15,adapt_delta=1.0)))
+system.time(pofit<-sampling(nb_quadratic,data=po,control=list(max_treedepth=15,adapt_delta=0.9)))
 save(po,pofit,file="data/po_stanfit.rda")
