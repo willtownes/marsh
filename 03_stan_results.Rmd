@@ -99,19 +99,22 @@ transform_temp_pars<-function(a,b,c){
   s<- c - b^2/(4*a)
   data.frame(q=q, s=s, w=w)
 }
-extract_transform<-function(stfit,stdat,tof=10,qlo=0,qhi=25){
+extract_transform<-function(stfit,stdat,tof=10,qlo=0,qhi=25,a_hi=-.001){
   #stfit a stan fit object
   #stdat the data used by stan
   #tof: offset for temperature, affects interpretation of "q" param
   #qlo and qhi are bounds on what a reasonable "peak abundance" temperature could be (Celsius)
   #returns: a data frame of samples from posterior
   #excludes samples with "unreasonable" q values and NaN values for w
+  #excludes samples for which the quadratic coefficient was above "a_hi"
+  #this can enforce negative concavity of the samples
   #those samples had numerical problems leading to ill-conditioned values
   #also computes q_dif and w_dif which are differences between red-backed and endemic parameters
   #extract sample draws for fixed effects
   res<-as.data.frame(stfit,pars="beta")
   pn<-colnames(res)<-colnames(stdat$X) #parameter names
-  
+  bad_a<-res$temp2 > a_hi | res$temp2+res$`saltyperbnh:temp2` > a_hi
+  res<-res[!bad_a,]
   en<-transform_temp_pars(res$temp2,res$temp,res$`(Intercept)`)
   en$q<-en$q+tof
   colnames(en)<-paste0(colnames(en),"_en")
@@ -145,6 +148,8 @@ resbl<-extract_transform(blfit,bl)
 hist(resbl$q_dif)
 quantile(resbl$q_dif,c(.025,.975))
 quantile(resbl$q_dif,c(.05,.95))
+mean(resbl$q_dif) # greater than zero means rbnh likes higher temps
+mean(resbl$q_dif>0) #posterior prob. that rbnh likes higher temps than blnh
 hist(resbl$w_dif)
 quantile(resbl$w_dif,c(.025,.975))
 ```
@@ -157,6 +162,8 @@ respo<-extract_transform(pofit,po)
 hist(respo$q_dif)
 quantile(respo$q_dif,c(.025,.975))
 quantile(respo$q_dif,c(.05,.95))
+mean(respo$q_dif) # less than zero means rbnh likes lower temps
+mean(respo$q_dif<0) #posterior prob. that rbnh likes lower temps than ponh
 hist(respo$w_dif)
 quantile(respo$w_dif,c(.025,.975))
 ```
