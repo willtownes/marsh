@@ -34,27 +34,23 @@ Dr. Marsh tried negative binomial regression, including date as random intercept
 
 ```{r}
 #read in data and convert to ggplot friendly format
-po<-read.csv("data/PORBsummary.csv")
+po<-read.csv("data/PORBsummary915.csv")
 po$poscaled<-po$pototal<-po$rbtotal<-po$rbscaled<-po$temp2<-NULL
-po2<-melt(po,c("Date","plot","soilWC","temp"),c("ponh","rbnh"),"saltype",value.name="salcount")
+po2<-melt(po,c("Date","plot","soilWC","temp"),c("rbnh","ponh"),"saltype",value.name="salcount")
 #po2$lsalcount<-log2(.5+po2$salcount)
 po$po_frac<-with(po,ponh/(ponh+rbnh)) #fraction of peaks of otter salamanders
 po2$site<-"PO"
 
-bl<-read.csv("data/BLRBvers2.csv")
+bl<-read.csv("data/BLRBvers1_1006.csv")
 bl$Date<-as.factor(bl$Date)
-colnames(bl)[colnames(bl)=="species"]<-"saltype"
-colnames(bl)[colnames(bl)=="nh"]<-"salcount"
+bl$rbtotal<-bl$bltotal<-bl$temp2<-NULL
 colnames(bl)[colnames(bl)=="soilms"]<-"soilWC"
-bl$total<-bl$temp2<-NULL
 bl$soilWC<-bl$soilWC*100
-bl$saltype<-as.character(bl$saltype)
-bl$saltype[bl$saltype=="RB"]<-"rbnh"
-bl$saltype[bl$saltype=="BL"]<-"blnh"
-bl$saltype<-as.factor(bl$saltype)
-bl$site<-"BL"
+bl2<-melt(bl,c("Date","plot","soilWC","temp"),c("rbnh","blnh"),"saltype",value.name="salcount")
+bl$bl_frac<-with(bl,blnh/(blnh+rbnh))
+bl2$site<-"BL"
 
-dat<-rbind(po2,bl)
+dat<-rbind(po2,bl2)
 write.csv(dat,file="data/merged_data.csv",row.names=FALSE)
 ```
 
