@@ -36,7 +36,7 @@ Dr. Marsh tried negative binomial regression, including date as random intercept
 #read in data and convert to ggplot friendly format
 po<-read.csv("data/PORBsummary915.csv")
 po$poscaled<-po$pototal<-po$rbtotal<-po$rbscaled<-po$temp2<-NULL
-po2<-melt(po,c("Date","plot","soilWC","temp"),c("rbnh","ponh"),"saltype",value.name="salcount")
+po2<-melt(po,c("Date","plot","soilWC","temp"),c("ponh","rbnh"),"saltype",value.name="salcount")
 #po2$lsalcount<-log2(.5+po2$salcount)
 po$po_frac<-with(po,ponh/(ponh+rbnh)) #fraction of peaks of otter salamanders
 po2$site<-"PO"
@@ -46,7 +46,7 @@ bl$Date<-as.factor(bl$Date)
 bl$rbtotal<-bl$bltotal<-bl$temp2<-NULL
 colnames(bl)[colnames(bl)=="soilms"]<-"soilWC"
 bl$soilWC<-bl$soilWC*100
-bl2<-melt(bl,c("Date","plot","soilWC","temp"),c("rbnh","blnh"),"saltype",value.name="salcount")
+bl2<-melt(bl,c("Date","plot","soilWC","temp"),c("blnh","rbnh"),"saltype",value.name="salcount")
 bl$bl_frac<-with(bl,blnh/(blnh+rbnh))
 bl2$site<-"BL"
 
