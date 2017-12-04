@@ -1,7 +1,7 @@
 ---
 title: "Salamander Analysis- Stan Results"
 author: "Will Townes"
-date: "9/12/2017"
+date: "11/19/2017"
 output: pdf_document
 ---
 
@@ -148,8 +148,8 @@ resbl<-extract_transform(blfit,bl)
 hist(resbl$q_dif)
 quantile(resbl$q_dif,c(.025,.975))
 quantile(resbl$q_dif,c(.05,.95))
-mean(resbl$q_dif) # greater than zero means rbnh likes higher temps
-mean(resbl$q_dif>0) #posterior prob. that rbnh likes higher temps than blnh
+mean(resbl$q_dif) # less than zero means rbnh likes lower temps
+mean(resbl$q_dif<0) #posterior prob. that rbnh likes lower temps than blnh
 hist(resbl$w_dif)
 quantile(resbl$w_dif,c(.025,.975))
 ```
@@ -162,7 +162,7 @@ respo<-extract_transform(pofit,po)
 hist(respo$q_dif)
 quantile(respo$q_dif,c(.025,.975))
 quantile(respo$q_dif,c(.05,.95))
-mean(respo$q_dif) # less than zero means rbnh likes lower temps
+mean(respo$q_dif) #less than zero means rbnh likes lower temps
 mean(respo$q_dif<0) #posterior prob. that rbnh likes lower temps than ponh
 hist(respo$w_dif)
 quantile(respo$w_dif,c(.025,.975))
