@@ -1,7 +1,7 @@
 ---
 title: "Salamander Analysis- Stan Results"
 author: "Will Townes"
-date: "5/23/2017"
+date: "11/19/2017"
 output: pdf_document
 ---
 
@@ -41,8 +41,7 @@ bl_rb<-function(t){
 }
 bl_col<-c(blnh="#009E73",rbnh="#D55E00")
 bl_plt<-ggplot(subset(dat,site=="BL"),aes(x=temp,colour=saltype))+ylab("count of adult salamanders")+scale_color_manual(values=bl_col)+xlim(c(0,25))+geom_point(aes(y=salcount))+stat_function(fun=bl_rb,colour=bl_col["rbnh"])+stat_function(fun=bl_bl,colour=bl_col["blnh"])
-show(bl_plt)
-show(bl_plt+coord_trans(y="log1p"))
+show(bl_plt+coord_trans(y="log1p")+ggtitle("Big Levels"))
 ```
 
 peaks of otter location
@@ -62,8 +61,7 @@ po_rb<-function(t){
 }
 po_col<-c(ponh="#0072B2",rbnh="#D55E00")
 po_plt<-ggplot(subset(dat,site=="PO"),aes(x=temp,colour=saltype))+ylab("count of adult salamanders")+scale_color_manual(values=po_col)+xlim(c(0,25))+geom_point(aes(y=salcount))+stat_function(fun=po_rb,colour=po_col["rbnh"])+stat_function(fun=po_po,colour=po_col["ponh"])
-show(po_plt)
-show(po_plt+coord_trans(y="log1p"))
+show(po_plt+coord_trans(y="log1p")+ggtitle("Peaks of Otter"))
 ```
 
 Combining the two locations into a single plot
@@ -71,6 +69,8 @@ Combining the two locations into a single plot
 ```{r}
 plot_grid(bl_plt+coord_trans(y="log1p"),po_plt+coord_trans(y="log1p"),nrow=2)
 ```
+
+As shown above, the negative binomial model suggests there is a small but significant difference in the temperature profiles for the red backed and peaks of otter salamanders. In particular, the peaks of otter salamanders seem to prefer slightly higher temperatures than the red backs. There does not appear to be a significant difference in the temperature profiles for the big levels versus the red backed salamanders.
 
 ### Alternative Parameterization
 
@@ -82,7 +82,7 @@ There are three parameters, $a,b,c$. Using some algebra, we can re-parameterize 
 
 $$\log\mu = -s\left(\frac{x-q}{w/2}\right)^2+s$$
 
-The parameters $q,r,s$ are more interpretable: $q=-b/(2a)$ is the temperature at which abundance reaches its peak. The maximum abundance is given by $e^s$ where $s=c-b^2/(4a)$ and the range of temperatures where log-abundance is expected to be more than zero has width $w=\sqrt{b^2-4ac}/|a|$. Based on this transformation, we can compare the abundance curves for different species by looking at contrasts in these parameters. For example, we can ask
+The parameters $q,r,s$ are more interpretable: $q=-b/(2a)$ is the temperature at which abundance reaches its peak. The maximum abundance is given by $e^s$ where $s=c-b^2/(4a)$ and the range of temperatures where log-abundance is expected to be more than zero has width $w=\sqrt{b^2-4ac}/|a|$ (ie mean abundance expected to be more than one). We can also obtain the range of temperatures where mean abundance is greater than $k$ by $\sqrt{b^2-4a(c-\log k)}/|a|$. Based on this transformation, we can compare the abundance curves for different species by looking at contrasts in these parameters. For example, we can ask
 
 * Do the two species reach maximum abundance at different temperatures? (comparing $q$)
 * Does one species have a wider temperature range? (comparing $w$)
@@ -93,24 +93,79 @@ To improve numerical stability while working with the quadratic temperature term
 In a previous step, we already transformed temperature by subtracting it from the offset of 10 degrees Celsius for both the BL and PO datasets. We also transformed soil moisture by subtracting off the median at each site. So, if we set soil moisture to zero it is the same as interpreting the parameters at the median level for each site.
 
 ```{r}
-stfit<-blfit
-stdat<-bl
-
 transform_temp_pars<-function(a,b,c){
   q<- -b/(2*a)
   w<- sqrt(b^2 - 4*a*c)/abs(a)
   s<- c - b^2/(4*a)
-  list(temp_max=q, max_log_abund=s, temp_range=w)
+  data.frame(q=q, s=s, w=w)
 }
+extract_transform<-function(stfit,stdat,tof=10,qlo=0,qhi=25,a_hi=-.001){
+  #stfit a stan fit object
+  #stdat the data used by stan
+  #tof: offset for temperature, affects interpretation of "q" param
+  #qlo and qhi are bounds on what a reasonable "peak abundance" temperature could be (Celsius)
+  #returns: a data frame of samples from posterior
+  #excludes samples with "unreasonable" q values and NaN values for w
+  #excludes samples for which the quadratic coefficient was above "a_hi"
+  #this can enforce negative concavity of the samples
+  #those samples had numerical problems leading to ill-conditioned values
+  #also computes q_dif and w_dif which are differences between red-backed and endemic parameters
+  #extract sample draws for fixed effects
+  res<-as.data.frame(stfit,pars="beta")
+  pn<-colnames(res)<-colnames(stdat$X) #parameter names
+  bad_a<-res$temp2 > a_hi | res$temp2+res$`saltyperbnh:temp2` > a_hi
+  res<-res[!bad_a,]
+  en<-transform_temp_pars(res$temp2,res$temp,res$`(Intercept)`)
+  en$q<-en$q+tof
+  colnames(en)<-paste0(colnames(en),"_en")
+  #had warnings about NAN in temp_range due to sqrt of negative number
+  #apply(saltype_base,2,function(x){sum(is.na(x))})
+  #hist(res$temp2) #too close to zero!
+  res<-cbind(res,en)
+  rb<-transform_temp_pars(res$temp2+res$`saltyperbnh:temp2`,res$temp+res$`saltyperbnh:temp`,res$`(Intercept)`+res$saltyperbnh)
+  rb$q<-rb$q+tof
+  #apply(saltype_other,2,function(x){sum(is.na(x))})
+  #hist(res$temp2+res$`saltyperbnh:temp2`) #too close to zero!
+  colnames(rb)<-paste0(colnames(rb),"_rb")
+  res<-cbind(res,rb)
+  #exclude samples where temperature range was NaN (not enough curvature to define a maximum in these samples).
+  #also exclude samples where q was less than 0 or more than 25, these are ill-defined values resulting from the sampled quadratic curves being too flat
+  #can think of this maybe as having a "prior" on q that it must be between 0 and 25
+  find_bad_q<-function(q,lo=qlo,hi=qhi){q<lo | q>hi}
+  bad_samples<-with(res,is.nan(w_en) | is.nan(w_rb) | find_bad_q(q_en) | find_bad_q(q_rb))
+  res<-res[!bad_samples,]
+  res$q_dif<-res$q_rb - res$q_en
+  res$w_dif<-res$w_rb - res$w_en
+  res
+}
+```
 
-#extract sample draws for fixed effects
-res<-as.data.frame(stfit,pars="beta")
-pn<-colnames(res)<-colnames(stdat$X) #parameter names
+### Big Levels Results
 
-saltype_base<-as.data.frame(transform_temp_pars(res$temp2,res$temp,res$`(Intercept)`))
-#had warnings about NAN in temp_range due to sqrt of negative number
-apply(saltype_base,2,function(x){sum(is.na(x))})
-hist(res$temp2) #too close to zero!
+Examining the 90% and 95% credible intervals, there does not appear to be a significant difference between red-backed and big levels salamanders in terms of peak temperature preference (q). However, it appears that at this site, the red-backed salamanders have a significantly narrower temperature range compared to the endemic big levels species.
+```{r}
+resbl<-extract_transform(blfit,bl)
+hist(resbl$q_dif)
+quantile(resbl$q_dif,c(.025,.975))
+quantile(resbl$q_dif,c(.05,.95))
+mean(resbl$q_dif) # less than zero means rbnh likes lower temps
+mean(resbl$q_dif<0) #posterior prob. that rbnh likes lower temps than blnh
+hist(resbl$w_dif)
+quantile(resbl$w_dif,c(.025,.975))
+```
+
+### Peaks of Otter Results
+
+Examining the 90% and 95% credible intervals, there does not appear to be a significant difference between red-backed and peaks of otter salamanders in terms of peak temperature preference (q). However, it appears that at this site, the red-backed salamanders have a significantly wider temperature range compared to the endemic peaks of otter species.
+```{r}
+respo<-extract_transform(pofit,po)
+hist(respo$q_dif)
+quantile(respo$q_dif,c(.025,.975))
+quantile(respo$q_dif,c(.05,.95))
+mean(respo$q_dif) #less than zero means rbnh likes lower temps
+mean(respo$q_dif<0) #posterior prob. that rbnh likes lower temps than ponh
+hist(respo$w_dif)
+quantile(respo$w_dif,c(.025,.975))
 ```
 
 old code, keeping for reference
@@ -153,7 +208,3 @@ ggplot(dat[dat$site=="BL",],aes(x=temp,y=salcount,colour=saltype))+geom_point() 
 knitr::kable(beta)
 knitr::kable(phi)
 ```
-
-As shown above, the negative binomial model suggests there is a small but significant difference in the temperature profiles for the red backed and peaks of otter salamanders. In particular, the peaks of otter salamanders seem to prefer slightly higher temperatures than the red backs.
-
-TODO- include the reparameterized (easier to interpret) version in the Stan program and make boxplots showing distributions of the contrasts.
