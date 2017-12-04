@@ -39,9 +39,9 @@ model {
   vector[N2] rand_ints_vec2;
   //no prior for intercepts
   //weak priors for linear terms
-  d ~ cauchy(0,5);
-  b ~ cauchy(0,5);
-  neg_a ~ gamma(2,2); //force negative concavity of quadratic term
+  d ~ cauchy(0,2);
+  b ~ cauchy(0,2);
+  neg_a ~ gamma(2,1); //force negative concavity of quadratic term
   //beta ~ cauchy(0,5);
   //logphi ~ cauchy(0,1);
   //phi~lognormal(0,1);
