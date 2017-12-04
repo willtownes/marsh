@@ -8,7 +8,7 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
-library(rstan)  #hi will!
+library(rstan) #hello to Dr Marsh
 library(cowplot)
 load("data/bl_stanfit.rda") #blfit, bl
 load("data/po_stanfit.rda") #pofit, po
