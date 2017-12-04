@@ -18,12 +18,9 @@ parameters {
 model {
   vector[N] eta;
   vector[N] rand_ints_vec;
-  //real<lower=0> phi[2];
   vector[N] phi_vec;
-  for(d in 2:D) beta[d]~cauchy(0,5); //omit beta[1] since it is assumed to be intercept
-  //beta ~ cauchy(0,5)
-  //logphi ~ cauchy(0,1);
-  //phi~lognormal(0,1);
+  //omit beta[1] since it is assumed to be intercept
+  for(d in 2:D) beta[d]~cauchy(0,10); 
   phi~gamma(2,.1);
   // prior for random effect stdev
   sigma~cauchy(0,1);
