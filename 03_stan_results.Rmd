@@ -8,11 +8,12 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
-library(rstan) #hello to Dr Marsh
+library(rstan)
 library(cowplot)
 load("data/bl_stanfit.rda") #blfit, bl
 load("data/po_stanfit.rda") #pofit, po
 dat<-read.csv("data/merged_data.csv")
+dat$saltype<-plyr::mapvalues(dat$saltype, from=c("blnh","ponh","rbnh"), to=c("BL","PO","RB"))
 
 #check for stan errors
 if(blfit@mode != 0) stop("bl_stanfit did not converge, try again!")
@@ -39,9 +40,10 @@ bl_rb<-function(t){
     (t-tof)^2*(bl_mn["temp2"]+bl_mn["saltyperbnh:temp2"])
   exp(res)
 }
-bl_col<-c(blnh="#009E73",rbnh="#D55E00")
-bl_plt<-ggplot(subset(dat,site=="BL"),aes(x=temp,colour=saltype))+ylab("count of adult salamanders")+scale_color_manual(values=bl_col)+xlim(c(0,25))+geom_point(aes(y=salcount))+stat_function(fun=bl_rb,colour=bl_col["rbnh"])+stat_function(fun=bl_bl,colour=bl_col["blnh"])
-show(bl_plt+coord_trans(y="log1p")+ggtitle("Big Levels"))
+bl_col<-c(BL="#009E73",RB="#D55E00")
+bl_plt<-ggplot(subset(dat,site=="BL"),aes(x=temp,colour=saltype))+ylab("count of adult salamanders")+scale_color_manual(values=bl_col)+xlim(c(0,25))+geom_point(aes(y=salcount))+stat_function(fun=bl_rb,colour=bl_col["RB"])+stat_function(fun=bl_bl,colour=bl_col["BL"])+guides(colour=guide_legend(title="species"))+xlab("temperature (C)")+coord_trans(y="log1p")
+show(bl_plt+ggtitle("Big Levels vs. Redbacks"))
+ggsave(file="plots/negbinom_bl_vs_rb.png",width=6,height=4)
 ```
 
 peaks of otter location
@@ -59,15 +61,16 @@ po_rb<-function(t){
     (t-tof)^2*(po_mn["temp2"]+po_mn["saltyperbnh:temp2"])
   exp(res)
 }
-po_col<-c(ponh="#0072B2",rbnh="#D55E00")
-po_plt<-ggplot(subset(dat,site=="PO"),aes(x=temp,colour=saltype))+ylab("count of adult salamanders")+scale_color_manual(values=po_col)+xlim(c(0,25))+geom_point(aes(y=salcount))+stat_function(fun=po_rb,colour=po_col["rbnh"])+stat_function(fun=po_po,colour=po_col["ponh"])
-show(po_plt+coord_trans(y="log1p")+ggtitle("Peaks of Otter"))
+po_col<-c(PO="#0072B2",RB="#D55E00")
+po_plt<-ggplot(subset(dat,site=="PO"),aes(x=temp,colour=saltype))+ylab("count of adult salamanders")+scale_color_manual(values=po_col)+xlim(c(0,25))+geom_point(aes(y=salcount))+stat_function(fun=po_rb,colour=po_col["RB"])+stat_function(fun=po_po,colour=po_col["PO"])+guides(colour=guide_legend(title="species"))+xlab("temperature (C)")+coord_trans(y="log1p")
+show(po_plt+ggtitle("Peaks of Otter vs. Redbacks"))
+ggsave(file="plots/negbinom_po_vs_rb.png",width=6,height=4)
 ```
 
 Combining the two locations into a single plot
 
 ```{r}
-plot_grid(bl_plt+coord_trans(y="log1p"),po_plt+coord_trans(y="log1p"),nrow=2)
+plot_grid(bl_plt,po_plt,nrow=2)
 ```
 
 As shown above, the negative binomial model suggests there is a small but significant difference in the temperature profiles for the red backed and peaks of otter salamanders. In particular, the peaks of otter salamanders seem to prefer slightly higher temperatures than the red backs. There does not appear to be a significant difference in the temperature profiles for the big levels versus the red backed salamanders.

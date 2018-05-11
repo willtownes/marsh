@@ -8,7 +8,9 @@ output: pdf_document
 ```{r setup}
 #knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
+library(cowplot) #changes some ggplot defaults
 library(reshape2)
+if(!dir.exists("plots")) dir.create("plots")
 ```
 
 ## Scientific Question
@@ -52,6 +54,7 @@ bl2$site<-"BL"
 
 dat<-rbind(po2,bl2)
 write.csv(dat,file="data/merged_data.csv",row.names=FALSE)
+dat$saltype<-plyr::mapvalues(dat$saltype, from=c("blnh","ponh","rbnh"), to=c("BL","PO","RB"))
 ```
 
 overall abundance of each species at different sites and elevations.
@@ -69,8 +72,21 @@ The reverse is true at the big levels site (BL). Here, the big levels species (b
 ```{r}
 #salcount by temperature
 ggplot(dat,aes(x=temp,y=salcount,colour=saltype))+geom_point()+geom_smooth()+facet_wrap(~site,scales="free",nrow=1)+theme_bw()+ylab("count of adult salamanders")
+
 #log scale same plot
 ggplot(dat,aes(x=temp,y=log2(.5+salcount),colour=saltype))+geom_point()+geom_smooth()+facet_wrap(~site,scales="free",nrow=1)+theme_bw()
+
+#publication version (BL)
+bl_col<-c(BL="#009E73",RB="#D55E00")
+bl_plt<-ggplot(subset(dat,site=="BL"),aes(x=temp,colour=saltype,y=log2(1+salcount)))+ylab("log2(1+salamander count)")+scale_color_manual(values=bl_col)+geom_point()+geom_smooth()+guides(colour=guide_legend(title="species"))+xlab("temperature (C)")
+show(bl_plt+ggtitle("Big Levels vs. Redbacks"))
+ggsave(file="plots/loess_bl_vs_rb.png",width=6,height=4)
+
+#publication version (PO)
+po_col<-c(PO="#0072B2",RB="#D55E00")
+po_plt<-ggplot(subset(dat,site=="PO"),aes(x=temp,colour=saltype,y=log2(1+salcount)))+ylab("log2(1+salamander count)")+scale_color_manual(values=po_col)+geom_point()+geom_smooth()+guides(colour=guide_legend(title="species"))+xlab("temperature (C)")
+show(po_plt+ggtitle("Peaks of Otter vs. Redbacks"))
+ggsave(file="plots/loess_po_vs_rb.png",width=6,height=4)
 ```
 
 At the PO site, we see the maximum overall abundance seems to occur at approximately 13C. The maximum for RB is closer to 12.5C and the maximum for PO is closer to 13.5C. On the log scale, there appears to be a quadratic relationship.
